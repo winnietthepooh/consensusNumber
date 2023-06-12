@@ -1,28 +1,35 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"github.com/grandcat/zeroconf"
-	"time"
+	"github.com/oleksandr/bonjour"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 func main() {
-	resolver, err := zeroconf.NewResolver(nil)
+	resolver, err := bonjour.NewResolver(nil)
 	if err != nil {
-		panic(err)
+		log.Fatalln("Failed to initialize resolver:", err.Error())
 	}
-	entries := make(chan *zeroconf.ServiceEntry)
-	go func(results <-chan *zeroconf.ServiceEntry) {
-		for entry := range results {
-			fmt.Println(entry.AddrIPv4[len(entry.AddrIPv4)-1])
+
+	results := make(chan *bonjour.ServiceEntry)
+
+	go func(results chan *bonjour.ServiceEntry, exitCh chan<- bool) {
+		for e := range results {
+			fmt.Printf("%s", e.AddrIPv4)
+			exitCh <- true
 		}
-	}(entries)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
-	defer cancel()
-	err = resolver.Browse(ctx, "test.tcp", "local.", entries)
+	}(results, resolver.Exit)
+
+	err = resolver.Browse("_test._tcp", ".local", results)
 	if err != nil {
 		panic(err)
 	}
-	<-ctx.Done()
+
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+	<-sig
 }

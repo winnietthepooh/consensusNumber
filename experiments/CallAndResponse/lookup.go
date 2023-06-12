@@ -2,34 +2,16 @@ package main
 
 import (
 	"fmt"
-	"github.com/oleksandr/bonjour"
-	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"github.com/koron/go-ssdp"
 )
 
 func main() {
-	resolver, err := bonjour.NewResolver(nil)
-	if err != nil {
-		log.Fatalln("Failed to initialize resolver:", err.Error())
-	}
-
-	results := make(chan *bonjour.ServiceEntry)
-
-	go func(results chan *bonjour.ServiceEntry, exitCh chan<- bool) {
-		for e := range results {
-			fmt.Printf("%s", e.AddrIPv4)
-			exitCh <- true
-		}
-	}(results, resolver.Exit)
-
-	err = resolver.Browse("_test._tcp", ".local", results)
+	list, err := ssdp.Search("my:device", 1, "")
 	if err != nil {
 		panic(err)
 	}
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-	<-sig
+	for i, srv := range list {
+		fmt.Printf("%d: %s %s\n", i, srv.Type, srv.Location)
+	}
 }

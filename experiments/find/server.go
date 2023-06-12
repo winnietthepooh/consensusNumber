@@ -2,17 +2,25 @@ package main
 
 import (
 	"github.com/koron/go-ssdp"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 )
 
 func main() {
+	rn := rand.Intn(30)
+	rns := strconv.Itoa(rn)
+	hostname, err := os.Hostname()
+	if err != nil {
+		panic(err)
+	}
 	ad, err := ssdp.Advertise(
 		"my:device",
-		"unique:id",
+		hostname+":"+rns,
 		GetLocalIP(),
 		"go-sddp sample",
 		1800)
@@ -23,6 +31,7 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	at := time.Tick(300 * time.Second)
+
 loop:
 	for {
 		select {
@@ -32,6 +41,7 @@ loop:
 			ad.Alive()
 		}
 	}
+
 	ad.Bye()
 	ad.Close()
 }

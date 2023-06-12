@@ -1,22 +1,18 @@
 package main
 
 import (
-	"github.com/hashicorp/mdns"
-	"math/rand"
+	"github.com/grandcat/zeroconf"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 )
 
 func main() {
-	num := rand.Int()
-	snum := strconv.Itoa(num)
-	info := []string{"service"}
-	service, _ := mdns.NewMDNSService(snum, "test.tcp", "", "", 8000, nil, info)
-	server, _ := mdns.NewServer(&mdns.Config{Zone: service})
+	server, err := zeroconf.Register("test", "test.tcp", "local.", 8080, []string{"test"}, nil)
+	if err != nil {
+		panic(err)
+	}
 	defer server.Shutdown()
-
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
